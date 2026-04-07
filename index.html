@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LivroTrack — Histórico de Preços de Livros</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.2/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #0f0e0c;
+      --ink-2: #3d3b35;
+      --ink-3: #8a8880;
+      --paper: #f5f2ec;
+      --paper-2: #edeae2;
+      --paper-3: #e3dfd5;
+      --green: #1a6b4a;
+      --green-light: #d4ede3;
+      --amber: #b85c00;
+      --amber-light: #fdefd8;
+      --red: #b52b2b;
+      --red-light: #fde4e4;
+      --accent: #2a4d8c;
+      --accent-light: #dce5f6;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+      --r: 6px;
+      --r-lg: 12px;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--paper);
+      border-bottom: 1px solid var(--paper-3);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      color: var(--ink);
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer;
+    }
+
+    .nav-logo-mark {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-mark svg { width: 14px; height: 14px; fill: var(--paper); }
+
+    .nav-links {
+      display: flex; gap: 1.5rem; list-style: none;
+      font-size: 0.875rem; color: var(--ink-3);
+    }
+
+    .nav-links a { color: inherit; text-decoration: none; }
+    .nav-links a:hover { color: var(--ink); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 5rem 2rem 3rem;
+      max-width: 900px; margin: 0 auto;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; font-weight: 500;
+      color: var(--green); letter-spacing: 0.06em; text-transform: uppercase;
+      background: var(--green-light);
+      padding: 4px 12px; border-radius: 99px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-eyebrow::before {
+      content: ''; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      color: var(--ink);
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--ink-2);
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--ink-2);
+      line-height: 1.65;
+      max-width: 560px; margin: 0 auto 2.5rem;
+    }
+
+    /* ── SEARCH ── */
+    .search-wrap {
+      position: relative;
+      max-width: 600px; margin: 0 auto;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: #fff;
+      border: 1.5px solid var(--paper-3);
+      border-radius: 99px;
+      padding: 1rem 1.5rem 1rem 3.2rem;
+      font-family: var(--sans);
+      font-size: 1rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(15,14,12,0.08);
+    }
+
+    .search-wrap input::placeholder { color: var(--ink-3); }
+
+    .search-icon {
+      position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%);
+      color: var(--ink-3); pointer-events: none;
+    }
+
+    .search-btn {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: var(--ink); color: var(--paper);
+      border: none; border-radius: 99px;
+      padding: 0.55rem 1.25rem;
+      font-family: var(--sans); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .search-btn:hover { background: var(--ink-2); }
+    .search-btn:active { transform: translateY(-50%) scale(0.97); }
+
+    /* ── SEARCH RESULTS DROPDOWN ── */
+    .search-results {
+      position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      z-index: 200;
+      overflow: hidden;
+      display: none;
+    }
+
+    .search-results.visible { display: block; }
+
+    .search-result-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.1s;
+      border-bottom: 1px solid var(--paper-2);
+    }
+
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--paper); }
+
+    .result-cover {
+      width: 36px; height: 50px;
+      background: var(--paper-3);
+      border-radius: 3px;
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+
+    .result-info { flex: 1; min-width: 0; }
+
+    .result-title {
+      font-size: 0.9rem; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .result-author {
+      font-size: 0.78rem; color: var(--ink-3); margin-top: 2px;
+    }
+
+    .result-price {
+      font-size: 0.9rem; font-weight: 500;
+      color: var(--green); white-space: nowrap;
+    }
+
+    /* ── MAIN CONTENT ── */
+    main { max-width: 920px; margin: 0 auto; padding: 2rem; }
+
+    /* ── BOOK DETAIL ── */
+    .book-detail { display: none; }
+    .book-detail.visible { display: block; }
+
+    .book-header {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .book-cover-large {
+      width: 120px; height: 170px;
+      border-radius: var(--r);
+      object-fit: cover;
+      background: var(--paper-3);
+      border: 1px solid var(--paper-3);
+    }
+
+    .book-meta { }
+
+    .book-title-large {
+      font-family: var(--serif);
+      font-size: 1.6rem; line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .book-author-large {
+      font-size: 0.9rem; color: var(--ink-3);
+      margin-bottom: 1rem;
+    }
+
+    .price-big {
+      font-size: 2.2rem; font-weight: 300;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .price-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; font-weight: 500;
+      padding: 4px 10px; border-radius: 99px;
+    }
+
+    .badge-good { background: var(--green-light); color: var(--green); }
+    .badge-ok   { background: var(--paper-2); color: var(--ink-2); }
+    .badge-bad  { background: var(--amber-light); color: var(--amber); }
+    .badge-high { background: var(--red-light); color: var(--red); }
+
+    .amazon-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px;
+      background: #f90; color: #111;
+      border: none; border-radius: var(--r);
+      padding: 8px 16px;
+      font-family: var(--sans); font-size: 0.85rem; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: filter 0.15s;
+    }
+
+    .amazon-btn:hover { filter: brightness(0.93); }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-size: 0.72rem; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 1.2rem; font-weight: 500;
+    }
+
+    .stat-value.green { color: var(--green); }
+    .stat-value.amber { color: var(--amber); }
+    .stat-value.red   { color: var(--red); }
+
+    /* ── CHART CARD ── */
+    .chart-card {
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .chart-card-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+    }
+
+    .tab-group {
+      display: flex; gap: 4px;
+    }
+
+    .tab-btn {
+      font-family: var(--sans); font-size: 0.78rem;
+      padding: 4px 12px;
+      border: 1px solid var(--paper-3);
+      border-radius: 99px;
+      background: transparent;
+      color: var(--ink-3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      background: var(--ink); color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* ── ALERT FORM ── */
+    .alert-section {
+      background: var(--green-light);
+      border: 1px solid rgba(26,107,74,0.2);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 1.5rem;
+    }
+
+    .alert-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    .alert-form {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+
+    .alert-form input {
+      flex: 1; min-width: 180px;
+      background: #fff;
+      border: 1px solid rgba(26,107,74,0.3);
+      border-radius: var(--r);
+      padding: 8px 12px;
+      font-family: var(--sans); font-size: 0.9rem;
+      color: var(--ink); outline: none;
+    }
+
+    .alert-form input:focus { border-color: var(--green); }
+
+    .alert-submit {
+      background: var(--green); color: #fff;
+      border: none; border-radius: var(--r);
+      padding: 8px 18px;
+      font-family: var(--sans); font-size: 0.9rem; font-weight: 500;
+      cursor: pointer;
+      transition: filter 0.15s;
+      white-space: nowrap;
+    }
+
+    .alert-submit:hover { filter: brightness(1.1); }
+
+    .alert-success {
+      font-size: 0.875rem; color: var(--green); margin-top: 8px;
+      display: none;
+    }
+
+    /* ── HISTORY TABLE ── */
+    .history-section {
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 1.5rem;
+    }
+
+    .history-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+
+    .history-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .history-table th {
+      text-align: left; font-weight: 500;
+      font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--ink-3);
+      padding: 0 8px 10px;
+      border-bottom: 1px solid var(--paper-3);
+    }
+
+    .history-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--paper-2);
+      vertical-align: middle;
+    }
+
+    .history-table tr:last-child td { border-bottom: none; }
+
+    .change-up   { color: var(--amber); font-size: 0.8rem; }
+    .change-down { color: var(--green); font-size: 0.8rem; }
+    .change-none { color: var(--ink-3); font-size: 0.8rem; }
+
+    /* ── TRENDING / HOME ── */
+    .home-section { display: block; }
+    .home-section.hidden { display: none; }
+
+    .section-title {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .trending-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+
+    .book-card {
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      padding: 14px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+
+    .book-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .book-card-cover {
+      width: 100%; height: 130px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--paper-3);
+      margin-bottom: 10px;
+    }
+
+    .book-card-title {
+      font-size: 0.85rem; font-weight: 500; line-height: 1.3;
+      margin-bottom: 2px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .book-card-author {
+      font-size: 0.75rem; color: var(--ink-3);
+      margin-bottom: 8px;
+    }
+
+    .book-card-price {
+      font-size: 1rem; font-weight: 500;
+    }
+
+    .book-card-drop {
+      font-size: 0.75rem; color: var(--green); font-weight: 500;
+    }
+
+    /* ── ANALYSIS ── */
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .analysis-card {
+      background: #fff;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--r-lg);
+      padding: 16px;
+    }
+
+    .analysis-card-title {
+      font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--ink-3);
+      margin-bottom: 10px;
+    }
+
+    .analysis-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--paper-2);
+      font-size: 0.875rem;
+    }
+
+    .analysis-item:last-child { border-bottom: none; }
+    .analysis-item-val { font-weight: 500; }
+
+    /* ── LOADING ── */
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 3rem;
+      color: var(--ink-3); font-size: 0.9rem;
+    }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--paper-3);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--paper-3);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.8rem; color: var(--ink-3);
+      margin-top: 4rem;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* ── UTILITIES ── */
+    .hidden { display: none !important; }
+
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .book-header { grid-template-columns: 90px 1fr; }
+      .analysis-grid { grid-template-columns: 1fr; }
+      nav .nav-links { display: none; }
+      .hero { padding: 3rem 1.5rem 2rem; }
+      main { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo" onclick="goHome()">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 16 16"><path d="M3 2h10l-1 9H4L3 2zm2 10h6l1 2H4l1-2z"/></svg>
+    </div>
+    LivroTrack
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" onclick="goHome()">Início</a></li>
+    <li><a href="#como-funciona">Como funciona</a></li>
+    <li><a href="https://github.com/seuuser/livrotrack" target="_blank">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero" id="hero">
+  <div class="hero-eyebrow">Monitoramento em tempo real</div>
+  <h1>Será que o preço <em>realmente</em><br>vale a pena?</h1>
+  <p>Acompanhe o histórico de preços de qualquer livro na Amazon Brasil. Descubra o melhor momento para comprar e crie alertas de preço.</p>
+
+  <div class="search-wrap">
+    <svg class="search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Título, autor ou ISBN..." autocomplete="off" />
+    <button class="search-btn" onclick="doSearch()">Buscar</button>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</section>
+
+<main>
+
+  <!-- ── HOME ── -->
+  <div class="home-section" id="homeSection">
+    <p class="section-title">Quedas recentes de preço</p>
+    <div class="trending-grid" id="trendingGrid">
+      <div class="loading"><div class="spinner"></div> Carregando...</div>
+    </div>
+
+    <p class="section-title">Como funciona</p>
+    <div class="analysis-grid" id="como-funciona">
+      <div class="analysis-card">
+        <div class="analysis-card-title">O que monitoramos</div>
+        <div class="analysis-item"><span>Preço atual</span><span class="analysis-item-val">✓</span></div>
+        <div class="analysis-item"><span>Histórico 12 meses</span><span class="analysis-item-val">✓</span></div>
+        <div class="analysis-item"><span>Mínimo histórico</span><span class="analysis-item-val">✓</span></div>
+        <div class="analysis-item"><span>Padrões sazonais</span><span class="analysis-item-val">✓</span></div>
+        <div class="analysis-item"><span>Alertas por email</span><span class="analysis-item-val">✓</span></div>
+      </div>
+      <div class="analysis-card">
+        <div class="analysis-card-title">Quando os preços caem?</div>
+        <div class="analysis-item"><span>Black Friday (nov)</span><span class="analysis-item-val change-down">−30 a 50%</span></div>
+        <div class="analysis-item"><span>Dia do Livro (abr)</span><span class="analysis-item-val change-down">−15 a 25%</span></div>
+        <div class="analysis-item"><span>Promoções Prime</span><span class="analysis-item-val change-down">−10 a 20%</span></div>
+        <div class="analysis-item"><span>Início do ano</span><span class="analysis-item-val change-up">+10 a 20%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BOOK DETAIL ── -->
+  <div class="book-detail" id="bookDetail">
+
+    <div class="book-header" id="bookHeader">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="chart-card" id="chartCard">
+      <div class="chart-header">
+        <span class="chart-card-title">Histórico de preço</span>
+        <div class="tab-group">
+          <button class="tab-btn" onclick="changeRange(90, this)">3m</button>
+          <button class="tab-btn active" onclick="changeRange(180, this)">6m</button>
+          <button class="tab-btn" onclick="changeRange(365, this)">1a</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+    <div class="alert-section" id="alertSection">
+      <div class="alert-title">Criar alerta de preço</div>
+      <div class="alert-form">
+        <input type="email" id="alertEmail" placeholder="seu@email.com" />
+        <input type="text" id="alertPrice" placeholder="R$ preço-alvo" />
+        <button class="alert-submit" onclick="submitAlert()">Criar alerta</button>
+      </div>
+      <div class="alert-success" id="alertSuccess">✓ Alerta criado! Você receberá um email quando o preço atingir a meta.</div>
+    </div>
+
+    <div class="analysis-grid" id="analysisGrid"></div>
+
+    <div class="history-section">
+      <div class="history-title">Histórico detalhado</div>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Preço</th>
+            <th>Variação</th>
+            <th>Desconto</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  <p>LivroTrack não é afiliado à Amazon. Dados coletados automaticamente a cada 6–12 horas.</p>
+  <p style="margin-top:6px">Feito com <span style="color:var(--red)">♥</span> para os leitores brasileiros</p>
+</footer>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const API = 'http://localhost:8000/api';  // troque pela URL do seu backend
+let currentAsin = null;
+let priceChart = null;
+let currentHistory = [];
+let currentBookId = null;
+
+// ── DEMO DATA (quando não há backend) ──────────────────────────────────────
+const DEMO_BOOKS = [
+  {
+    asin: 'B0DEMO001',
+    title: 'O Senhor dos Anéis — Edição Única',
+    author: 'J.R.R. Tolkien',
+    publisher: 'HarperCollins',
+    amazon_url: 'https://www.amazon.com.br',
+    current_price: 89.90,
+    original_price: 119.90,
+    discount_pct: 25,
+    in_stock: true,
+    min_price: 49.90,
+    max_price: 119.90,
+    avg_price: 74.30,
+    price_drops_count: 8,
+    best_months: ['nov', 'dez', 'abr'],
+    tracking_since: '2024-04-01',
+    history: generateDemoHistory(49.90, 119.90, 74.30, 365),
+  },
+  {
+    asin: 'B0DEMO002',
+    title: '1984',
+    author: 'George Orwell',
+    publisher: 'Companhia das Letras',
+    amazon_url: 'https://www.amazon.com.br',
+    current_price: 34.90,
+    original_price: 44.90,
+    discount_pct: 22,
+    in_stock: true,
+    min_price: 24.90,
+    max_price: 49.90,
+    avg_price: 37.20,
+    price_drops_count: 12,
+    best_months: ['nov', 'jan', 'abr'],
+    tracking_since: '2024-04-01',
+    history: generateDemoHistory(24.90, 49.90, 37.20, 365),
+  },
+  {
+    asin: 'B0DEMO003',
+    title: 'Sapiens: Uma Breve História da Humanidade',
+    author: 'Yuval Noah Harari',
+    publisher: 'L&PM',
+    amazon_url: 'https://www.amazon.com.br',
+    current_price: 42.90,
+    original_price: 59.90,
+    discount_pct: 28,
+    in_stock: true,
+    min_price: 29.90,
+    max_price: 69.90,
+    avg_price: 48.50,
+    price_drops_count: 6,
+    best_months: ['nov', 'mai', 'ago'],
+    tracking_since: '2024-04-01',
+    history: generateDemoHistory(29.90, 69.90, 48.50, 365),
+  },
+  {
+    asin: 'B0DEMO004',
+    title: 'O Pequeno Príncipe',
+    author: 'Antoine de Saint-Exupéry',
+    publisher: 'Agir',
+    amazon_url: 'https://www.amazon.com.br',
+    current_price: 19.90,
+    original_price: null,
+    discount_pct: null,
+    in_stock: true,
+    min_price: 14.90,
+    max_price: 29.90,
+    avg_price: 21.50,
+    price_drops_count: 10,
+    best_months: ['nov', 'abr', 'jun'],
+    tracking_since: '2024-04-01',
+    history: generateDemoHistory(14.90, 29.90, 21.50, 365),
+  },
+];
+
+const DEMO_TRENDING = [
+  { asin: 'B0DEMO001', title: 'O Senhor dos Anéis — Edição Única', author: 'J.R.R. Tolkien', current_price: 89.90, prev_price: 149.90, drop_pct: 40 },
+  { asin: 'B0DEMO002', title: '1984', author: 'George Orwell', current_price: 34.90, prev_price: 44.90, drop_pct: 22 },
+  { asin: 'B0DEMO003', title: 'Sapiens', author: 'Yuval Noah Harari', current_price: 42.90, prev_price: 59.90, drop_pct: 28 },
+  { asin: 'B0DEMO004', title: 'O Pequeno Príncipe', author: 'Antoine de Saint-Exupéry', current_price: 19.90, prev_price: 29.90, drop_pct: 33 },
+  { asin: 'B0DEMO005', title: 'Dom Casmurro', author: 'Machado de Assis', current_price: 22.50, prev_price: 32.00, drop_pct: 30 },
+  { asin: 'B0DEMO006', title: 'A Revolução dos Bichos', author: 'George Orwell', current_price: 28.90, prev_price: 39.90, drop_pct: 28 },
+];
+
+function generateDemoHistory(min, max, avg, days) {
+  const pts = [];
+  const now = new Date();
+  let price = avg;
+  for (let i = days; i >= 0; i -= Math.floor(Math.random() * 7) + 3) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    // Simula volatilidade
+    const drift = (Math.random() - 0.48) * (max - min) * 0.15;
+    price = Math.max(min, Math.min(max, price + drift));
+    // Black Friday bump
+    if (d.getMonth() === 10 && d.getDate() >= 20) price = min + (price - min) * 0.3;
+    pts.push({ scraped_at: d.toISOString(), price: Math.round(price * 100) / 100 });
+  }
+  return pts;
+}
+
+// ── NAVIGATION ──────────────────────────────────────────────────────────────
+function goHome() {
+  document.getElementById('homeSection').classList.remove('hidden');
+  document.getElementById('bookDetail').classList.remove('visible');
+  document.getElementById('bookDetail').classList.add('hidden');
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchResults').classList.remove('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── SEARCH ──────────────────────────────────────────────────────────────────
+const searchInput = document.getElementById('searchInput');
+let searchTimeout;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const q = searchInput.value.trim();
+  if (q.length < 2) {
+    document.getElementById('searchResults').classList.remove('visible');
+    return;
+  }
+  searchTimeout = setTimeout(() => doSearch(true), 400);
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) {
+    document.getElementById('searchResults').classList.remove('visible');
+  }
+});
+
+async function doSearch(inline = false) {
+  const q = searchInput.value.trim();
+  if (!q) return;
+
+  // Demo: filtra pelos livros de demo
+  const results = DEMO_BOOKS.filter(b =>
+    b.title.toLowerCase().includes(q.toLowerCase()) ||
+    b.author.toLowerCase().includes(q.toLowerCase())
+  );
+
+  if (inline) {
+    renderSearchDropdown(results);
+  } else {
+    if (results.length === 1) {
+      loadBook(results[0].asin);
+    } else if (results.length > 1) {
+      renderSearchDropdown(results);
+    }
+  }
+
+  // Em produção, descomente:
+  // const res = await fetch(`${API}/books/search?q=${encodeURIComponent(q)}`);
+  // const data = await res.json();
+  // renderSearchDropdown(data.results);
+}
+
+function renderSearchDropdown(results) {
+  const el = document.getElementById('searchResults');
+  if (!results.length) {
+    el.innerHTML = '<div class="search-result-item" style="color:var(--ink-3);justify-content:center">Nenhum resultado encontrado</div>';
+    el.classList.add('visible');
+    return;
+  }
+  el.innerHTML = results.slice(0, 6).map(r => `
+    <div class="search-result-item" onclick="loadBook('${r.asin}')">
+      <div class="result-cover" style="background:var(--paper-3)"></div>
+      <div class="result-info">
+        <div class="result-title">${r.title}</div>
+        <div class="result-author">${r.author || ''}</div>
+      </div>
+      <div class="result-price">${r.current_price ? fmtPrice(r.current_price) : '—'}</div>
+    </div>
+  `).join('');
+  el.classList.add('visible');
+}
+
+// ── LOAD BOOK ────────────────────────────────────────────────────────────────
+async function loadBook(asin) {
+  currentAsin = asin;
+  document.getElementById('searchResults').classList.remove('visible');
+  document.getElementById('homeSection').classList.add('hidden');
+  
+  const detail = document.getElementById('bookDetail');
+  detail.classList.add('visible');
+  detail.classList.remove('hidden');
+
+  document.getElementById('bookHeader').innerHTML = '<div class="loading"><div class="spinner"></div> Carregando...</div>';
+  document.getElementById('statsGrid').innerHTML = '';
+  document.getElementById('historyBody').innerHTML = '';
+  document.getElementById('analysisGrid').innerHTML = '';
+  if (priceChart) { priceChart.destroy(); priceChart = null; }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Demo mode
+  const book = DEMO_BOOKS.find(b => b.asin === asin);
+  if (book) {
+    renderBook(book);
+    return;
+  }
+
+  // Em produção:
+  // const res = await fetch(`${API}/books/${asin}`);
+  // const book = await res.json();
+  // renderBook(book);
+}
+
+function renderBook(book) {
+  currentHistory = book.history || [];
+  currentBookId = book.id || book.asin;
+
+  // Header
+  document.getElementById('bookHeader').innerHTML = `
+    <div style="width:120px;height:170px;background:var(--paper-3);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--ink-3);text-align:center;padding:12px;">
+      ${book.title.split(' ').slice(0,3).join(' ')}
+    </div>
+    <div class="book-meta">
+      <div class="book-title-large">${book.title}</div>
+      <div class="book-author-large">${book.author || ''} ${book.publisher ? '· ' + book.publisher : ''}</div>
+      <div class="price-big">${book.current_price ? fmtPrice(book.current_price) : 'Indisponível'}</div>
+      <span class="price-badge ${priceBadgeClass(book)}">${priceBadgeText(book)}</span>
+      ${book.discount_pct ? `<span style="margin-left:6px;font-size:0.78rem;color:var(--green)">−${book.discount_pct}% off</span>` : ''}
+      <br>
+      <a href="${book.amazon_url}" target="_blank" class="amazon-btn">
+        Comprar na Amazon ↗
+      </a>
+    </div>
+  `;
+
+  // Stats
+  const avg = book.avg_price || 0;
+  const vsAvg = avg ? ((book.current_price - avg) / avg * 100).toFixed(0) : null;
+  const vsMin = book.min_price ? ((book.current_price - book.min_price) / book.min_price * 100).toFixed(0) : null;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Mínimo histórico</div>
+      <div class="stat-value green">${fmtPrice(book.min_price)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Máximo histórico</div>
+      <div class="stat-value red">${fmtPrice(book.max_price)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Média 12 meses</div>
+      <div class="stat-value">${fmtPrice(book.avg_price)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Vs. mínimo histórico</div>
+      <div class="stat-value ${vsMin > 20 ? 'amber' : 'green'}">${vsMin !== null ? (vsMin > 0 ? '+' : '') + vsMin + '%' : '—'}</div>
+    </div>
+  `;
+
+  // Chart
+  renderChart(currentHistory, 180);
+
+  // Alert section — pre-fill target as 10% below avg
+  const suggested = avg ? (avg * 0.9).toFixed(2).replace('.', ',') : '';
+  document.getElementById('alertPrice').value = suggested ? `R$ ${suggested}` : '';
+
+  // Analysis
+  const months = (book.best_months || []).join(', ');
+  document.getElementById('analysisGrid').innerHTML = `
+    <div class="analysis-card">
+      <div class="analysis-card-title">Análise de padrão</div>
+      <div class="analysis-item"><span>Quedas de preço (12m)</span><span class="analysis-item-val">${book.price_drops_count || '—'}x</span></div>
+      <div class="analysis-item"><span>Melhor época p/ comprar</span><span class="analysis-item-val green">${months || '—'}</span></div>
+      <div class="analysis-item"><span>Variação máx. no período</span><span class="analysis-item-val">${book.min_price && book.max_price ? Math.round((book.max_price - book.min_price)/book.min_price*100) + '%' : '—'}</span></div>
+    </div>
+    <div class="analysis-card">
+      <div class="analysis-card-title">Veredicto</div>
+      <div style="font-size:0.875rem;line-height:1.6;color:var(--ink-2)">
+        ${getVerdict(book)}
+      </div>
+    </div>
+  `;
+
+  // History table
+  const recent = [...currentHistory].reverse().slice(0, 20);
+  document.getElementById('historyBody').innerHTML = recent.map((pt, i) => {
+    const prev = recent[i + 1];
+    const diff = prev ? pt.price - prev.price : null;
+    const diffStr = diff === null ? '<span class="change-none">—</span>'
+      : diff > 0 ? `<span class="change-up">+${fmtPrice(diff)}</span>`
+      : diff < 0 ? `<span class="change-down">${fmtPrice(diff)}</span>`
+      : '<span class="change-none">sem mudança</span>';
+    return `<tr>
+      <td>${fmtDate(pt.scraped_at)}</td>
+      <td><strong>${fmtPrice(pt.price)}</strong></td>
+      <td>${diffStr}</td>
+      <td>${pt.discount_pct ? `−${pt.discount_pct}%` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHART ────────────────────────────────────────────────────────────────────
+function renderChart(history, days) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const filtered = history.filter(p => new Date(p.scraped_at) >= cutoff);
+
+  const labels = filtered.map(p => fmtDateShort(p.scraped_at));
+  const prices = filtered.map(p => p.price);
+
+  if (priceChart) priceChart.destroy();
+
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const min = Math.min(...prices);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+  priceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: prices,
+        borderColor: '#1a6b4a',
+        backgroundColor: 'rgba(26,107,74,0.06)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `R$ ${ctx.parsed.y.toFixed(2).replace('.', ',')}`,
+          },
+          backgroundColor: '#0f0e0c',
+          titleColor: '#f5f2ec',
+          bodyColor: '#f5f2ec',
+          padding: 10,
+          cornerRadius: 6,
+        },
+        annotation: {
+          annotations: {
+            avgLine: {
+              type: 'line',
+              yMin: avg,
+              yMax: avg,
+              borderColor: 'rgba(15,14,12,0.2)',
+              borderWidth: 1,
+              borderDash: [4, 4],
+              label: {
+                content: `Média R$ ${avg.toFixed(2).replace('.', ',')}`,
+                enabled: true,
+                position: 'end',
+                color: '#8a8880',
+                font: { size: 10 },
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8a8880', font: { size: 10 }, maxTicksLimit: 8 },
+          grid: { display: false },
+          border: { display: false },
+        },
+        y: {
+          ticks: {
+            color: '#8a8880', font: { size: 10 },
+            callback: v => `R$ ${v.toFixed(0)}`,
+          },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          border: { display: false },
+        }
+      }
+    }
+  });
+}
+
+function changeRange(days, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart(currentHistory, days);
+}
+
+// ── ALERT ────────────────────────────────────────────────────────────────────
+async function submitAlert() {
+  const email = document.getElementById('alertEmail').value.trim();
+  const priceRaw = document.getElementById('alertPrice').value.replace(/[^\d,]/g, '').replace(',', '.');
+  const price = parseFloat(priceRaw);
+
+  if (!email || !email.includes('@')) { alert('Informe um email válido.'); return; }
+  if (!price || price <= 0) { alert('Informe um preço-alvo válido.'); return; }
+
+  // Demo: mostra sucesso sem chamar API
+  document.getElementById('alertSuccess').style.display = 'block';
+  setTimeout(() => document.getElementById('alertSuccess').style.display = 'none', 5000);
+
+  // Em produção:
+  // await fetch(`${API}/alerts`, {
+  //   method: 'POST', headers: {'Content-Type': 'application/json'},
+  //   body: JSON.stringify({ book_id: currentBookId, email, target_price: price })
+  // });
+}
+
+// ── TRENDING ─────────────────────────────────────────────────────────────────
+function loadTrending() {
+  const grid = document.getElementById('trendingGrid');
+  grid.innerHTML = DEMO_TRENDING.map(b => `
+    <div class="book-card" onclick="loadBook('${b.asin}')">
+      <div class="book-card-cover" style="background:var(--paper-3);display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--ink-3);text-align:center;padding:8px;">
+        ${b.title.split(' ').slice(0, 3).join(' ')}
+      </div>
+      <div class="book-card-title">${b.title}</div>
+      <div class="book-card-author">${b.author || ''}</div>
+      <div class="book-card-price">${fmtPrice(b.current_price)}</div>
+      <div class="book-card-drop">↓ ${b.drop_pct}% desde o pico</div>
+    </div>
+  `).join('');
+
+  // Em produção: fetch(`${API}/trending`).then(r => r.json()).then(d => ...)
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function fmtPrice(v) {
+  if (v == null) return '—';
+  return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
+function priceBadgeClass(book) {
+  if (!book.avg_price || !book.current_price) return 'badge-ok';
+  const ratio = book.current_price / book.avg_price;
+  if (ratio < 0.85) return 'badge-good';
+  if (ratio < 1.05) return 'badge-ok';
+  if (ratio < 1.2) return 'badge-bad';
+  return 'badge-high';
+}
+
+function priceBadgeText(book) {
+  if (!book.avg_price || !book.current_price) return 'sem histórico';
+  const ratio = book.current_price / book.avg_price;
+  if (ratio < 0.85) return 'ótimo preço';
+  if (ratio < 1.05) return 'preço na média';
+  if (ratio < 1.2) return 'acima da média';
+  return 'preço alto';
+}
+
+function getVerdict(book) {
+  const ratio = book.avg_price ? book.current_price / book.avg_price : 1;
+  const vsMin = book.min_price ? book.current_price / book.min_price : 1;
+
+  if (vsMin < 1.1) return '🟢 <strong>Compre agora!</strong> O preço está muito próximo do mínimo histórico. Raramente fica mais barato que isso.';
+  if (ratio < 0.9) return '🟢 <strong>Bom momento para comprar.</strong> O preço atual está abaixo da média histórica.';
+  if (ratio < 1.1) return '🟡 <strong>Preço razoável.</strong> Está na média. Se precisar, compre — mas vale esperar promoções.';
+  return '🔴 <strong>Aguarde.</strong> O preço está acima da média. Crie um alerta para ser notificado quando cair.';
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+loadTrending();
+</script>
+
+</body>
+</html>
